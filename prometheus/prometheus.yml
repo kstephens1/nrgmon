@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 60s
+  scrape_timeout: 20s
+
+scrape_configs:
+  - job_name: solar-collector
+    static_configs:
+      - targets: [collector:8000]

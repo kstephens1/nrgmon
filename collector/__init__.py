@@ -1,0 +1,1 @@
+"""Solar generation collector package."""
