@@ -9,7 +9,7 @@
       "id": 1,
       "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
       "targets": [{"expr": "solar_generation_power_watts{array=\"array_1\"}", "refId": "A"}],
-      "title": "Array 1 current generation",
+      "title": "Lounge Roof current generation",
       "type": "stat"
     },
     {
@@ -19,7 +19,7 @@
       "id": 2,
       "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
       "targets": [{"expr": "solar_generation_power_watts{array=\"array_2\"}", "refId": "A"}],
-      "title": "Array 2 current generation",
+      "title": "House Roof current generation",
       "type": "stat"
     },
     {
@@ -39,8 +39,9 @@
       "id": 4,
       "options": {"legend": {"displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi"}},
       "targets": [
-        {"expr": "solar_generation_power_watts", "legendFormat": "{{array}}", "refId": "A"},
-        {"expr": "sum(solar_generation_power_watts)", "legendFormat": "Combined", "refId": "B"}
+        {"expr": "solar_generation_power_watts{array=\"array_1\"}", "legendFormat": "Lounge Roof", "refId": "A"},
+        {"expr": "solar_generation_power_watts{array=\"array_2\"}", "legendFormat": "House Roof", "refId": "B"},
+        {"expr": "sum(solar_generation_power_watts)", "legendFormat": "Combined", "refId": "C"}
       ],
       "title": "Solar generation",
       "type": "timeseries"
@@ -73,5 +74,5 @@
   "time": {"from": "now-24h", "to": "now"},
   "title": "Solar Generation",
   "uid": "solar-generation",
-  "version": 1
+  "version": 2
 }

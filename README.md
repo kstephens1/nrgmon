@@ -9,7 +9,26 @@ The collector polls each configured source every 60 seconds, exports Prometheus 
 
 ## Deploy
 
-1. Install Docker Engine and Docker Compose on a 64-bit Raspberry Pi OS host.
+1. Install Docker Engine and Docker Compose. Start Docker for your platform:
+
+   On a 64-bit Raspberry Pi OS host, start Docker and enable it at boot:
+
+   ```sh
+   sudo systemctl enable --now docker
+   ```
+
+   To start it for the current session only:
+
+   ```sh
+   sudo systemctl start docker
+   ```
+
+   On macOS, install and start Docker Desktop (or start it from Terminal):
+
+   ```sh
+   open -a Docker
+   ```
+
 2. Create your private configuration: `cp .env.example .env`.
 3. Add the S-Miles email/password and optional station ID for Hoymiles, then populate the Myenergi API URL, authentication values, and JSON paths. Do not commit `.env`.
 4. Validate the configuration and start the stack:
