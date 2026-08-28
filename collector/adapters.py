@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import math
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -21,6 +22,13 @@ class Reading:
     power_w: float
     energy_wh: float | None
     timestamp: float
+    hot_water_temperature_c: float | None = None
+    eddi_solar_diversion_active: bool | None = None
+    eddi_solar_diverted_power_w: float | None = None
+    grid_power_w: float | None = None
+    site_generation_power_w: float | None = None
+    eddi_status_up: bool | None = None
+    zappi_status_up: bool | None = None
 
 
 def json_path(payload: Any, path: str) -> Any:
@@ -75,7 +83,7 @@ class HttpSourceAdapter:
         self._oauth_expires_at = time.time() + float(body.get("expires_in", 300))
         return {"Authorization": f"Bearer {token}"}
 
-    def fetch(self) -> Reading:
+    def _request_headers(self) -> dict[str, str]:
         headers = dict(self.config.headers)
         if self.config.auth_mode == "bearer":
             if not self.config.token:
@@ -87,17 +95,95 @@ class HttpSourceAdapter:
             headers[self.config.api_key_header] = self.config.api_key
         elif self.config.auth_mode == "oauth_client_credentials":
             headers.update(self._oauth_headers())
+        return headers
+
+    def _get_json(self, url: str) -> Any:
         try:
-            response = httpx.get(self.config.status_url, headers=headers, auth=self._auth(), timeout=self.timeout)
+            response = httpx.get(url, headers=self._request_headers(), auth=self._auth(), timeout=self.timeout)
             response.raise_for_status()
-            body = response.json()
+            return response.json()
+        except (httpx.HTTPError, ValueError) as exc:
+            raise SourceError(str(exc)) from exc
+
+    @staticmethod
+    def _optional_number(payload: Any, path: str, missing_as_zero: bool = False) -> float | None:
+        try:
+            raw_value = json_path(payload, path)
+        except (KeyError, IndexError):
+            return 0.0 if missing_as_zero else None
+        try:
+            value = float(raw_value)
+        except (ValueError, TypeError):
+            return None
+        return value if math.isfinite(value) else None
+
+    def _parse_eddi_reading(self, body: Any) -> tuple[float | None, bool | None, float | None]:
+        temperature = self._optional_number(body, self.config.hot_water_temperature_path) if self.config.hot_water_temperature_path else None
+        if temperature in {-1.0, 127.0}:
+            temperature = None
+
+        status = self._optional_number(body, "eddi.0.sta")
+        if status is None:
+            return temperature, None, None
+        diverted_power = self._optional_number(body, "eddi.0.div", missing_as_zero=True)
+        if diverted_power is None:
+            return temperature, None, None
+        solar_diversion_active = status == 3 and diverted_power > 0
+        return temperature, solar_diversion_active, diverted_power if solar_diversion_active else 0.0
+
+    def _status_body(self, url: str, primary_body: Any) -> Any:
+        return primary_body if url == self.config.status_url else self._get_json(url)
+
+    def _eddi_reading(self, primary_body: Any) -> tuple[float | None, bool | None, float | None, bool | None]:
+        if not self.config.eddi_status_url:
+            return None, None, None, None
+        try:
+            body = self._status_body(self.config.eddi_status_url, primary_body)
+            if not isinstance(json_path(body, "eddi.0"), dict):
+                return None, None, None, False
+            temperature, active, diverted_power = self._parse_eddi_reading(body)
+            return temperature, active, diverted_power, True
+        except (SourceError, KeyError, IndexError, TypeError):
+            return None, None, None, False
+
+    def _zappi_reading(self, primary_body: Any) -> tuple[float | None, float | None, bool | None]:
+        if not self.config.zappi_status_url:
+            return None, None, None
+        try:
+            body = self._status_body(self.config.zappi_status_url, primary_body)
+            if not isinstance(json_path(body, "zappi.0"), dict):
+                return None, None, False
+            grid_power = self._optional_number(body, self.config.zappi_grid_power_path, missing_as_zero=True)
+            generation_power = self._optional_number(body, self.config.zappi_generation_power_path, missing_as_zero=True)
+            if grid_power is None or generation_power is None:
+                return None, None, False
+            return grid_power, generation_power, True
+        except (SourceError, KeyError, IndexError, TypeError):
+            return None, None, False
+
+    def fetch(self) -> Reading:
+        try:
+            body = self._get_json(self.config.status_url)
             power_w = float(json_path(body, self.config.power_path)) * self.config.power_multiplier
             energy_wh = None if self.config.energy_value_type == "derived_from_power" else float(json_path(body, self.config.energy_path)) * self.config.energy_multiplier
-        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
+        except (SourceError, ValueError, KeyError, IndexError, TypeError) as exc:
             raise SourceError(str(exc)) from exc
         if power_w < 0 or energy_wh is not None and energy_wh < 0:
             raise SourceError("Generation values cannot be negative")
-        return Reading(power_w=power_w, energy_wh=energy_wh, timestamp=time.time())
+        temperature, solar_diversion_active, solar_diverted_power, eddi_status_up = self._eddi_reading(body)
+        grid_power, site_generation_power, zappi_status_up = self._zappi_reading(body)
+        return Reading(
+            power_w=power_w,
+            energy_wh=energy_wh,
+            timestamp=time.time(),
+            hot_water_temperature_c=temperature,
+            eddi_solar_diversion_active=solar_diversion_active,
+            eddi_solar_diverted_power_w=solar_diverted_power,
+            grid_power_w=grid_power,
+            site_generation_power_w=site_generation_power,
+            eddi_status_up=eddi_status_up,
+            zappi_status_up=zappi_status_up,
+        )
 
 
 class HoymilesSCloudAdapter:

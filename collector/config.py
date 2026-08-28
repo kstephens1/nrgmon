@@ -23,6 +23,11 @@ class SourceConfig:
     power_multiplier: float
     energy_multiplier: float
     headers: Mapping[str, str]
+    hot_water_temperature_path: str = ""
+    eddi_status_url: str = ""
+    zappi_status_url: str = ""
+    zappi_grid_power_path: str = "zappi.0.grd"
+    zappi_generation_power_path: str = "zappi.0.gen"
     api_key: str | None = None
     api_key_header: str = "X-API-Key"
     token: str | None = None
@@ -65,13 +70,23 @@ def _headers(prefix: str) -> Mapping[str, str]:
     return value
 
 
+def _device_status_url(prefix: str, source: str, status_url: str, device: str) -> str:
+    configured = _env(f"{prefix}_{device}_STATUS_URL")
+    if configured:
+        return configured
+    if source == "myenergi" and status_url.endswith(("/cgi-jstatus-E", "/cgi-jstatus-Z")):
+        return f"{status_url[:-1]}{device[0]}"
+    return ""
+
+
 def _source(prefix: str, source: str, array: str) -> SourceConfig:
     enabled = _bool(f"{prefix}_ENABLED")
+    status_url = _env(f"{prefix}_STATUS_URL")
     config = SourceConfig(
         source=source,
         array=array,
         enabled=enabled,
-        status_url=_env(f"{prefix}_STATUS_URL"),
+        status_url=status_url,
         auth_mode=_env(f"{prefix}_AUTH_MODE", "none").lower(),
         power_path=_env(f"{prefix}_POWER_PATH"),
         energy_path=_env(f"{prefix}_ENERGY_PATH"),
@@ -79,6 +94,14 @@ def _source(prefix: str, source: str, array: str) -> SourceConfig:
         power_multiplier=float(_env(f"{prefix}_POWER_MULTIPLIER", "1")),
         energy_multiplier=float(_env(f"{prefix}_ENERGY_MULTIPLIER", "1")),
         headers=_headers(prefix),
+        hot_water_temperature_path=_env(
+            f"{prefix}_HOT_WATER_TEMPERATURE_PATH",
+            "eddi.0.tp1" if source == "myenergi" else "",
+        ),
+        eddi_status_url=_device_status_url(prefix, source, status_url, "EDDI"),
+        zappi_status_url=_device_status_url(prefix, source, status_url, "ZAPPI"),
+        zappi_grid_power_path=_env(f"{prefix}_ZAPPI_GRID_POWER_PATH", "zappi.0.grd"),
+        zappi_generation_power_path=_env(f"{prefix}_ZAPPI_GENERATION_POWER_PATH", "zappi.0.gen"),
         api_key=_env(f"{prefix}_API_KEY") or None,
         api_key_header=_env(f"{prefix}_API_KEY_HEADER", "X-API-Key"),
         token=_env(f"{prefix}_TOKEN") or None,
@@ -109,6 +132,11 @@ def _source(prefix: str, source: str, array: str) -> SourceConfig:
         raise ConfigError(f"{prefix}_AUTH_MODE is not supported")
     if config.energy_value_type not in {"cumulative", "daily_counter", "derived_from_power"}:
         raise ConfigError(f"{prefix}_ENERGY_VALUE_TYPE is not supported")
+    if config.zappi_status_url and (not config.zappi_grid_power_path or not config.zappi_generation_power_path):
+        raise ConfigError(
+            f"{prefix}_ZAPPI_STATUS_URL requires {prefix}_ZAPPI_GRID_POWER_PATH "
+            f"and {prefix}_ZAPPI_GENERATION_POWER_PATH"
+        )
     if config.power_multiplier <= 0 or config.energy_multiplier <= 0:
         raise ConfigError(f"{prefix} multipliers must be positive")
     return config

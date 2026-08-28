@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NRGMon kiosk</title>
+    <style>
+      html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; }
+      body { background: #111; }
+      iframe { display: block; }
+    </style>
+  </head>
+  <body>
+    <iframe id="page" title="Kiosk display"></iframe>
+    <script src="/config.js"></script>
+    <script>
+      (() => {
+        const config = window.NRGMonKioskConfig || {};
+        const grafanaPort = Number(config.grafanaPort) || 3000;
+        const intervalSeconds = Number(config.intervalSeconds) > 0
+          ? Number(config.intervalSeconds)
+          : 30;
+        const defaultPage = `http://${window.location.hostname}:${grafanaPort}/d/solar-generation/solar-generation?orgId=1&kiosk`;
+        const configuredPages = Array.isArray(config.pages) ? config.pages : [];
+        const resolvedPages = configuredPages
+          .filter((page) => typeof page === 'string' && page.trim())
+          .map((page) => page.replaceAll('{{HOST}}', window.location.hostname));
+        if (!resolvedPages.length) {
+          resolvedPages.push(defaultPage);
+        }
+        const frame = document.getElementById('page');
+        let current = 0;
+
+        function showNextPage() {
+          frame.src = resolvedPages[current];
+          current = (current + 1) % resolvedPages.length;
+        }
+
+        showNextPage();
+        if (resolvedPages.length > 1) {
+          window.setInterval(showNextPage, intervalSeconds * 1000);
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -31,6 +31,8 @@ deploy_port=$(config_value DEPLOY_PORT)
 deploy_password=$(config_value DEPLOY_PASSWORD)
 deploy_path=$(config_value DEPLOY_PATH)
 grafana_port=$(config_value GRAFANA_PORT)
+kiosk_port=$(config_value KIOSK_PORT)
+kiosk_port=${kiosk_port:-8080}
 
 [ -n "$deploy_host" ] && [ "$deploy_host" != CHANGE_ME ] || fail "Set DEPLOY_HOST in $config_file."
 [ -n "$deploy_user" ] || fail "Set DEPLOY_USER in $config_file."
@@ -46,6 +48,9 @@ case "$deploy_path" in
 esac
 case "$grafana_port" in
   ''|*[!0-9]*) fail "GRAFANA_PORT must be a number." ;;
+esac
+case "$kiosk_port" in
+  ''|*[!0-9]*) fail "KIOSK_PORT must be a number." ;;
 esac
 
 if rg -q '^[^#].*CHANGE_ME' "$config_file"; then
@@ -120,7 +125,7 @@ run_ssh -tt "${ssh_options[@]}" "$target" "
 
 printf 'Copying application files...\n'
 run_scp "${scp_options[@]}" "$project_root/Dockerfile" "$project_root/compose.yaml" "$project_root/requirements.txt" "$target:$deploy_path/"
-run_scp -r "${scp_options[@]}" "$project_root/collector" "$project_root/grafana" "$project_root/prometheus" "$target:$deploy_path/"
+run_scp -r "${scp_options[@]}" "$project_root/collector" "$project_root/grafana" "$project_root/kiosk" "$project_root/prometheus" "$target:$deploy_path/"
 run_scp "${scp_options[@]}" "$runtime_env" "$target:$deploy_path/.env"
 
 printf 'Building, starting, and smoke-testing NRGMon...\n'
@@ -138,7 +143,7 @@ run_ssh -tt "${ssh_options[@]}" "$target" "
   healthy=0
   for attempt in \$(seq 1 30); do
     running=\$(\$compose ps -q | wc -l | tr -d ' ')
-    if [ \"\$running\" = 3 ] && curl --fail --silent --show-error 'http://127.0.0.1:$grafana_port/api/health' >/dev/null; then
+    if [ \"\$running\" = 4 ] && curl --fail --silent --show-error 'http://127.0.0.1:$grafana_port/api/health' >/dev/null && curl --fail --silent --show-error 'http://127.0.0.1:$kiosk_port/' >/dev/null; then
       healthy=1
       break
     fi
@@ -156,4 +161,4 @@ run_ssh -tt "${ssh_options[@]}" "$target" "
   echo 'Smoke test passed. Docker is enabled to start NRGMon after reboot.'
 "
 
-printf 'Deployment complete: http://%s:%s\n' "$deploy_host" "$grafana_port"
+printf 'Deployment complete: Grafana http://%s:%s; kiosk http://%s:%s\n' "$deploy_host" "$grafana_port" "$deploy_host" "$kiosk_port"

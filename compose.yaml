@@ -30,15 +30,40 @@ services:
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
       GF_AUTH_DISABLE_LOGIN_FORM: "true"
       GF_USERS_ALLOW_SIGN_UP: "false"
-      GF_SECURITY_ALLOW_EMBEDDING: "false"
+      # The kiosk service displays this dashboard in an iframe.
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/assets/nrgmon:/usr/share/grafana/public/img/nrgmon:ro
     restart: unless-stopped
     networks: [monitoring, frontend]
+
+  kiosk:
+    image: nginx:1.27-alpine
+    environment:
+      GRAFANA_PORT: ${GRAFANA_PORT:-3000}
+      KIOSK_INTERVAL_SECONDS: ${KIOSK_INTERVAL_SECONDS:-30}
+      # A JSON array of URLs. {{HOST}} is replaced with the hostname in the browser.
+      KIOSK_PAGES: ${KIOSK_PAGES:-[]}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        envsubst '$$GRAFANA_PORT $$KIOSK_INTERVAL_SECONDS $$KIOSK_PAGES' \
+          < /etc/nrgmon-kiosk/config.template.js \
+          > /usr/share/nginx/html/config.js
+        exec nginx -g 'daemon off;'
+    ports:
+      - "${KIOSK_PORT:-8080}:80"
+    volumes:
+      - ./kiosk/index.html:/usr/share/nginx/html/index.html:ro
+      - ./kiosk/config.template.js:/etc/nrgmon-kiosk/config.template.js:ro
+    restart: unless-stopped
+    networks: [frontend]
 
 networks:
   monitoring:
