@@ -7,20 +7,20 @@
       "fieldConfig": {
         "defaults": {"noValue": "N/A"},
         "overrides": [
-          {"matcher": {"id": "byFrameRefID", "options": "A"}, "properties": [{"id": "unit", "value": "watt"}, {"id": "decimals", "value": 0}]},
-          {"matcher": {"id": "byFrameRefID", "options": "B"}, "properties": [{"id": "unit", "value": "watt"}, {"id": "decimals", "value": 0}]},
-          {"matcher": {"id": "byFrameRefID", "options": "C"}, "properties": [{"id": "unit", "value": "watt"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "A"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "B"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "C"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
           {"matcher": {"id": "byFrameRefID", "options": "D"}, "properties": [{"id": "unit", "value": "watth"}, {"id": "decimals", "value": 1}]},
-          {"matcher": {"id": "byFrameRefID", "options": "E"}, "properties": [{"id": "unit", "value": "watt"}, {"id": "decimals", "value": 0}]},
-          {"matcher": {"id": "byFrameRefID", "options": "F"}, "properties": [{"id": "unit", "value": "watt"}, {"id": "decimals", "value": 0}]},
-          {"matcher": {"id": "byFrameRefID", "options": "G"}, "properties": [{"id": "unit", "value": "watt"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "E"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "F"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "G"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
           {"matcher": {"id": "byFrameRefID", "options": "H"}, "properties": [{"id": "unit", "value": "celsius"}, {"id": "decimals", "value": 1}]},
           {"matcher": {"id": "byFrameRefID", "options": "I"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "#f2495c", "text": "No"}, "1": {"color": "#65d46e", "text": "Yes"}}, "type": "value"}, {"options": {"match": "nan", "result": {"text": "N/A"}}, "type": "special"}]}]},
-          {"matcher": {"id": "byFrameRefID", "options": "J"}, "properties": [{"id": "unit", "value": "kwatt"}, {"id": "decimals", "value": 1}]},
-          {"matcher": {"id": "byFrameRefID", "options": "K"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "#34383e"}, "1": {"color": "#65d46e"}}, "type": "value"}]}]},
-          {"matcher": {"id": "byFrameRefID", "options": "L"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "#34383e"}, "1": {"color": "#f2495c"}}, "type": "value"}]}]},
-          {"matcher": {"id": "byFrameRefID", "options": "M"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "#34383e"}, "1": {"color": "#38bdf8"}}, "type": "value"}]}]},
-          {"matcher": {"id": "byFrameRefID", "options": "N"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "#34383e"}, "1": {"color": "#f5b942"}}, "type": "value"}]}]}
+          {"matcher": {"id": "byFrameRefID", "options": "J"}, "properties": [{"id": "unit", "value": "suffix: W"}, {"id": "decimals", "value": 0}]},
+          {"matcher": {"id": "byFrameRefID", "options": "K"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "transparent"}, "1": {"color": "#65d46e"}}, "type": "value"}]}]},
+          {"matcher": {"id": "byFrameRefID", "options": "L"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "transparent"}, "1": {"color": "#f2495c"}}, "type": "value"}]}]},
+          {"matcher": {"id": "byFrameRefID", "options": "M"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "transparent"}, "1": {"color": "#38bdf8"}}, "type": "value"}]}]},
+          {"matcher": {"id": "byFrameRefID", "options": "N"}, "properties": [{"id": "mappings", "value": [{"options": {"0": {"color": "transparent"}, "1": {"color": "#f5b942"}}, "type": "value"}]}]}
         ]
       },
       "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
@@ -35,10 +35,10 @@
           "border": {"color": {"fixed": "#34363b"}, "width": 1},
           "elements": [
             {"name": "Energy system artwork", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/energy-flow.svg"}, "fill": {"fixed": "#747982"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 1, "right": 1, "top": 1, "bottom": 1}},
-            {"name": "Solar flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/arrow-right.svg"}, "fill": {"field": "Solar active", "fixed": "#34383e"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 34, "right": 59, "top": 40, "bottom": 55}},
-            {"name": "Grid import flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/arrow-left.svg"}, "fill": {"field": "Import active", "fixed": "#34383e"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 62, "right": 17, "top": 34, "bottom": 61}},
-            {"name": "Grid export flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/arrow-right.svg"}, "fill": {"field": "Export active", "fixed": "#34383e"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 62, "right": 17, "top": 47, "bottom": 48}},
-            {"name": "Hot water flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/arrow-down.svg"}, "fill": {"field": "Hot water active", "fixed": "#34383e"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 49, "right": 49, "top": 56, "bottom": 29}},
+            {"name": "Solar flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": -1, "y": 0}, "target": {"x": -0.1, "y": 0.15}, "path": "straight", "color": {"field": "Solar active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 38, "right": 55, "top": 40, "bottom": 55}},
+            {"name": "Grid import flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": 1, "y": 0}, "target": {"x": 0.12, "y": 0.27}, "path": "straight", "color": {"field": "Import active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 56, "right": 27, "top": 34, "bottom": 61}},
+            {"name": "Grid export flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": -1, "y": 0}, "target": {"x": 0.46, "y": 0.01}, "path": "straight", "color": {"field": "Export active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 56, "right": 27, "top": 47, "bottom": 48}},
+            {"name": "Hot water flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": 0, "y": 1}, "target": {"x": 0, "y": -0.42}, "path": "straight", "color": {"field": "Hot water active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 49, "right": 49, "top": 56, "bottom": 29}},
             {"name": "Generated icon", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/bolt.svg"}, "fill": {"fixed": "#65d46e"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 4, "right": 93, "top": 80, "bottom": 7}},
             {"name": "Lounge Roof label", "type": "text", "config": {"align": "left", "valign": "middle", "color": {"fixed": "#a7aab0"}, "size": 16, "text": {"fixed": "Lounge Roof", "mode": "fixed"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 14, "right": 72, "top": 10, "bottom": 83}},
             {"name": "Lounge Roof", "type": "metric-value", "config": {"align": "left", "valign": "middle", "color": {"fixed": "#f4f4f5"}, "size": 34, "text": {"field": "Lounge Roof", "fixed": "", "mode": "field"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 14, "right": 72, "top": 17, "bottom": 70}},
@@ -76,23 +76,23 @@
         {"expr": "house_consumption_power_watts{source=\"myenergi\"}", "instant": true, "legendFormat": "Home consumption", "range": false, "refId": "G"},
         {"expr": "hot_water_temperature_celsius{source=\"myenergi\"}", "instant": true, "legendFormat": "Hot water", "range": false, "refId": "H"},
         {"expr": "eddi_solar_diversion_active{source=\"myenergi\"}", "instant": true, "legendFormat": "Solar heating", "range": false, "refId": "I"},
-        {"expr": "eddi_solar_diverted_power_watts{source=\"myenergi\"} / 1000", "instant": true, "legendFormat": "Solar to hot water", "range": false, "refId": "J"},
+        {"expr": "eddi_solar_diverted_power_watts{source=\"myenergi\"}", "instant": true, "legendFormat": "Solar to hot water", "range": false, "refId": "J"},
         {"expr": "sum(solar_generation_power_watts) > bool 0", "instant": true, "legendFormat": "Solar active", "range": false, "refId": "K"},
         {"expr": "grid_import_power_watts{source=\"myenergi\"} > bool 0", "instant": true, "legendFormat": "Import active", "range": false, "refId": "L"},
         {"expr": "grid_export_power_watts{source=\"myenergi\"} > bool 0", "instant": true, "legendFormat": "Export active", "range": false, "refId": "M"},
-        {"expr": "eddi_solar_diversion_active{source=\"myenergi\"} > bool 0", "instant": true, "legendFormat": "Hot water active", "range": false, "refId": "N"}
+        {"expr": "eddi_solar_diverted_power_watts{source=\"myenergi\"} > bool 0", "instant": true, "legendFormat": "Hot water active", "range": false, "refId": "N"}
       ],
       "title": "",
       "type": "canvas"
     },
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
-      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 7, "lineInterpolation": "smooth", "lineWidth": 2, "showPoints": "never"}, "unit": "watt"}, "overrides": [{"matcher": {"id": "byName", "options": "Lounge Roof"}, "properties": [{"id": "color", "value": {"fixedColor": "#65d46e", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "House Roof"}, "properties": [{"id": "color", "value": {"fixedColor": "#38bdf8", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "Combined"}, "properties": [{"id": "color", "value": {"fixedColor": "#f4f4f5", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}]}, {"matcher": {"id": "byName", "options": "Grid import"}, "properties": [{"id": "color", "value": {"fixedColor": "#f2495c", "mode": "fixed"}}]}]},
-      "gridPos": {"h": 5, "w": 24, "x": 0, "y": 12},
+      "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 7, "lineInterpolation": "smooth", "lineWidth": 2, "showPoints": "never"}, "unit": "suffix: W", "decimals": 0}, "overrides": [{"matcher": {"id": "byName", "options": "Lounge Roof"}, "properties": [{"id": "color", "value": {"fixedColor": "#65d46e", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "House Roof"}, "properties": [{"id": "color", "value": {"fixedColor": "#38bdf8", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "Combined"}, "properties": [{"id": "color", "value": {"fixedColor": "#f4f4f5", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}]}, {"matcher": {"id": "byName", "options": "Grid import"}, "properties": [{"id": "color", "value": {"fixedColor": "#f2495c", "mode": "fixed"}}]}]},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 12},
       "id": 4,
       "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi"}},
       "targets": [{"expr": "solar_generation_power_watts{array=\"array_1\"}", "legendFormat": "Lounge Roof", "refId": "A"}, {"expr": "solar_generation_power_watts{array=\"array_2\"}", "legendFormat": "House Roof", "refId": "B"}, {"expr": "sum(solar_generation_power_watts)", "legendFormat": "Combined", "refId": "C"}, {"expr": "grid_import_power_watts{source=\"myenergi\"}", "legendFormat": "Grid import", "refId": "D"}],
-      "title": "Solar generation",
+      "title": "Energy History",
       "type": "timeseries"
     }
   ],
@@ -103,5 +103,5 @@
   "time": {"from": "now-24h", "to": "now"},
   "title": "Solar & Home Energy",
   "uid": "solar-generation",
-  "version": 10
+  "version": 17
 }
