@@ -124,7 +124,7 @@ run_ssh -tt "${ssh_options[@]}" "$target" "
 "
 
 printf 'Copying application files...\n'
-run_scp "${scp_options[@]}" "$project_root/Dockerfile" "$project_root/compose.yaml" "$project_root/requirements.txt" "$target:$deploy_path/"
+run_scp "${scp_options[@]}" "$project_root/.dockerignore" "$project_root/Dockerfile" "$project_root/compose.yaml" "$project_root/requirements.txt" "$target:$deploy_path/"
 run_scp -r "${scp_options[@]}" "$project_root/collector" "$project_root/grafana" "$project_root/kiosk" "$project_root/prometheus" "$target:$deploy_path/"
 run_scp "${scp_options[@]}" "$runtime_env" "$target:$deploy_path/.env"
 

@@ -29,7 +29,7 @@
           {"matcher": {"id": "byFrameRefID", "options": "U"}, "properties": [{"id": "mappings", "value": [{"type": "value", "options": {"0": {"color": "transparent"}, "1": {"color": "#a78bfa"}}}, {"type": "special", "options": {"match": "nan", "result": {"color": "transparent"}}}]}]}
         ]
       },
-      "gridPos": {"h": 16, "w": 24, "x": 0, "y": 0},
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
       "id": 10,
       "options": {
         "inlineEditing": false,
@@ -40,7 +40,7 @@
           "background": {"color": {"fixed": "#1c1d1f"}},
           "border": {"color": {"fixed": "#34363b"}, "width": 1},
           "elements": [
-            {"name": "Energy system artwork", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/energy-flow.svg"}, "fill": {"fixed": "#747982"}}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 1, "right": 1, "top": 0.75, "bottom": 25.75}},
+            {"name": "Energy system artwork", "type": "rectangle", "config": {}, "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 1, "right": 1, "top": 0.75, "bottom": 25.75}, "background": {"image": {"mode": "fixed", "fixed": "img/nrgmon/energy-flow.svg?v=24"}, "size": "fill"}},
             {"name": "Solar flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": -1, "y": 0}, "target": {"x": -0.1, "y": 0.15}, "path": "straight", "color": {"field": "Solar active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 38, "right": 55, "top": 30.0, "bottom": 66.25}},
             {"name": "Grid import flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": 1, "y": 0}, "target": {"x": 0.12, "y": 0.27}, "path": "straight", "color": {"field": "Import active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 56, "right": 27, "top": 25.5, "bottom": 70.75}},
             {"name": "Grid export flow", "type": "icon", "config": {"path": {"mode": "fixed", "fixed": "img/nrgmon/flow-anchor.svg"}, "fill": {"fixed": "transparent"}}, "connections": [{"source": {"x": -1, "y": 0}, "target": {"x": 0.46, "y": 0.01}, "path": "straight", "color": {"field": "Export active", "fixed": "transparent"}, "size": {"fixed": 4, "min": 1, "max": 10}, "lineStyle": {"style": "dashed", "animate": true}, "direction": "none"}], "constraint": {"horizontal": "scale", "vertical": "scale"}, "placement": {"left": 56, "right": 27, "top": 35.25, "bottom": 61.0}},
@@ -111,7 +111,7 @@
     {
       "datasource": {"type": "prometheus", "uid": "prometheus"},
       "fieldConfig": {"defaults": {"custom": {"drawStyle": "line", "fillOpacity": 7, "lineInterpolation": "smooth", "lineWidth": 2, "showPoints": "never"}, "unit": "suffix: W", "decimals": 0}, "overrides": [{"matcher": {"id": "byName", "options": "Lounge Roof"}, "properties": [{"id": "color", "value": {"fixedColor": "#65d46e", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "House Roof"}, "properties": [{"id": "color", "value": {"fixedColor": "#38bdf8", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "Combined"}, "properties": [{"id": "color", "value": {"fixedColor": "#f4f4f5", "mode": "fixed"}}, {"id": "custom.lineWidth", "value": 3}]}, {"matcher": {"id": "byName", "options": "Grid import"}, "properties": [{"id": "color", "value": {"fixedColor": "#f2495c", "mode": "fixed"}}]}, {"matcher": {"id": "byName", "options": "Battery level"}, "properties": [{"id": "unit", "value": "percent"}, {"id": "min", "value": 0}, {"id": "max", "value": 100}, {"id": "custom.axisPlacement", "value": "right"}, {"id": "custom.axisLabel", "value": "Battery level (%)"}, {"id": "color", "value": {"fixedColor": "#a78bfa", "mode": "fixed"}}]}]},
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+      "gridPos": {"h": 5, "w": 24, "x": 0, "y": 12},
       "id": 4,
       "options": {"legend": {"displayMode": "list", "placement": "bottom", "showLegend": true}, "tooltip": {"mode": "multi"}},
       "targets": [{"expr": "solar_generation_power_watts{array=\"array_1\"}", "legendFormat": "Lounge Roof", "refId": "A"}, {"expr": "solar_generation_power_watts{array=\"array_2\"}", "legendFormat": "House Roof", "refId": "B"}, {"expr": "sum(solar_generation_power_watts)", "legendFormat": "Combined", "refId": "C"}, {"expr": "grid_import_power_watts{source=\"myenergi\"}", "legendFormat": "Grid import", "refId": "D"}, {"expr": "battery_charge_power_watts", "legendFormat": "Battery charge", "refId": "E"}, {"expr": "battery_discharge_power_watts", "legendFormat": "Battery discharge", "refId": "F"}, {"expr": "battery_state_of_charge_percent", "legendFormat": "Battery level", "refId": "G"}],
@@ -126,5 +126,5 @@
   "time": {"from": "now-24h", "to": "now"},
   "title": "Solar & Home Energy",
   "uid": "solar-generation",
-  "version": 22
+  "version": 24
 }

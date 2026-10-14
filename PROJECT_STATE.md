@@ -2,11 +2,13 @@
 
 ## Current baseline
 
-- The latest coding cycle is committed and pushed as `1a2b2e1` (`added animated arrows`).
-- That change updates the Grafana solar-generation dashboard and its energy-flow SVG assets.
-- `gh.sh` records the corresponding add, commit, and push commands for that cycle.
+- The latest application coding cycle is committed as `b2bf01d` (battery monitoring, diagnostics, combined history, and revised battery layout).
+- That application state was deployed to `192.168.6.238` on 2026-10-14, together with the deployment-script fix to copy `.dockerignore`. Deployment follow-up and compact-tablet layout changes remain uncommitted.
+- `gh.sh` records explicit add, commit, and push commands for the deployment follow-up; private configurations remain ignored.
 
 ## Local development
+
+- On 2026-10-14, reduced the energy canvas from 16 to 12 grid rows and Energy History from 8 to 5, moving the graph to row 12. Total panel height is now 17 rows rather than 24, addressing history falling below the tablet viewport. Existing metric positions, fonts, and queries are unchanged. Energy artwork now fills its SVG viewport so it stays aligned with percentage-positioned labels across panel aspect ratios. README and `gh.sh` updated. All 25 tests passed in Docker; JSON and shell syntax checks passed. Local Safari screenshot inspection confirmed the full graph/legend is visible and artwork tracks the labels. Dashboard and SVG were applied to production without restarting services, with previous-file backups retained; production smoke tests passed for all four services, health/kiosk/assets, compact panel heights and scalable background, all 27 queries, live solar/Eddi/Zappi/battery metrics, and retained historical samples. The actual tablet viewport has not been directly inspected after the change.
 
 - On 2026-10-14, moved House battery and its percentage into the space left of the battery icon, then shifted Charging and Discharging left into the next two columns. Label/value pairs retain their vertical alignment; icon and arrow positions are unchanged. README and `gh.sh` updated. All 25 tests passed in the local Docker image; JSON, whitespace, and shell syntax checks passed. Running local Grafana confirmed House battery at 22%, icon at 36%, Charging at 45%, and Discharging at 62% of canvas width, with matching label/value columns and clearance before the icon. Production unchanged.
 
@@ -31,6 +33,8 @@
 - Start the development stack with `docker compose up --build`; Grafana is available at `http://localhost:3000` and the kiosk at `http://localhost:8080`.
 
 ## Production deployment
+
+- On 2026-10-14, prepared deployment of committed dashboard/battery changes from `b2bf01d`. Production preflight confirmed four running services and the existing three persistent volumes. Copied working local battery settings into ignored private `deploy.env` and updated the deployment script to copy `.dockerignore`, excluding credentials from the remote Docker build context. README and `gh.sh` updated. Deployment completed successfully and the script smoke test passed. Extended production checks passed for all four running services, Grafana database health, kiosk/config, battery SVG, the two-panel dashboard with revised labels/positions and reciprocal named connections, all 27 dashboard queries, both solar-source polls, Eddi/Zappi health, finite live battery readings, battery poll freshness, and successful Prometheus scraping with a healthy battery-source series. Existing volumes were retained, and both solar series at 2026-10-13 12:00 UTC remained queryable. All 25 unit tests passed locally in Docker; shell/whitespace checks passed. A mode-restricted rollback backup is stored on the Pi at `/home/keith/nrgmon-backup-20261014-before-battery.tgz`.
 
 - Commit `1a2b2e1` was deployed to `192.168.6.238` on 2026-09-01.
 - Local unit tests passed (4 run, 1 skipped), and the production smoke test passed for all four services, Grafana health, and the kiosk endpoint.
