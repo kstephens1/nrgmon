@@ -1,0 +1,379 @@
+{
+  "info": {
+    "_postman_id": "952e66b6-05e2-4d64-bcb1-7ee1b918a3b3",
+    "name": "NRGMon - Solarman Battery Diagnostics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Read-only diagnostic requests matching collector/solarman.py. Requires a current Postman release with Web Crypto script support. Import this file, open collection Variables, and fill SOLARMAN_APP_ID, SOLARMAN_APP_SECRET, SOLARMAN_EMAIL, and your normal SOLARMAN_PASSWORD using local values. No credentials are included in this file. Send requests 1, 2, then 3. The login script hashes the exact UTF-8 password to lowercase SHA-256; do not paste an already-hashed password. Successful login saves a token for later requests. Station discovery selects a plant only when exactly one exists; otherwise enter SOLARMAN_STATION_ID yourself. SOLARMAN_ORG_ID is omitted when blank. Inspect response Body and Test Results to diagnose errors such as 2101025. Requests are manual: no hidden requests, retries, or automatic logins. The collector handles token refresh automatically; here rerun request 1 when needed. Do not share or commit a re-export containing credentials or captured tokens."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const base = String(pm.variables.get('SOLARMAN_BASE_URL') || '');",
+          "if (!/^https:\\/\\//.test(base)) throw new Error('SOLARMAN_BASE_URL must use HTTPS.');"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "SOLARMAN_BASE_URL",
+      "value": "https://globalapi.solarmanpv.com",
+      "type": "string",
+      "description": "Same HTTPS base URL as the collector."
+    },
+    {
+      "key": "SOLARMAN_APP_ID",
+      "value": "",
+      "type": "string",
+      "description": "Required: application ID supplied by Solarman."
+    },
+    {
+      "key": "SOLARMAN_APP_SECRET",
+      "value": "",
+      "type": "string",
+      "description": "Required: API/application secret."
+    },
+    {
+      "key": "SOLARMAN_EMAIL",
+      "value": "",
+      "type": "string",
+      "description": "Required: Solarman account login email."
+    },
+    {
+      "key": "SOLARMAN_PASSWORD",
+      "value": "",
+      "type": "string",
+      "description": "Required: normal unhashed password. The pre-request script performs SHA-256."
+    },
+    {
+      "key": "SOLARMAN_STATION_ID",
+      "value": "",
+      "type": "string",
+      "description": "Optional for a single-station account; otherwise enter your numeric plant ID."
+    },
+    {
+      "key": "SOLARMAN_ORG_ID",
+      "value": "",
+      "type": "string",
+      "description": "Merchant accounts only; omit for home accounts."
+    },
+    {
+      "key": "SOLARMAN_MAX_AGE_SECONDS",
+      "value": "900",
+      "type": "string",
+      "description": "Same freshness threshold as the collector."
+    },
+    {
+      "key": "SOLARMAN_POWER_MULTIPLIER",
+      "value": "1",
+      "type": "string",
+      "description": "Collector treats power magnitudes as W by default. This collection shows the original response unchanged."
+    },
+    {
+      "key": "SOLARMAN_BATTERY_CAPACITY_KWH",
+      "value": "",
+      "type": "string",
+      "description": "Optional collector setting for estimated stored energy; not sent to Solarman."
+    },
+    {
+      "key": "SOLARMAN_ACCESS_TOKEN",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically after successful login. Keep private."
+    },
+    {
+      "key": "SOLARMAN_ACCESS_TOKEN_EXPIRES_AT",
+      "value": "",
+      "type": "string",
+      "description": "Populated automatically; expiry in milliseconds since epoch."
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Obtain token",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.unset('SOLARMAN_ACCESS_TOKEN');",
+              "pm.collectionVariables.unset('SOLARMAN_ACCESS_TOKEN_EXPIRES_AT');",
+              "for (const key of ['SOLARMAN_APP_ID', 'SOLARMAN_APP_SECRET', 'SOLARMAN_EMAIL', 'SOLARMAN_PASSWORD']) {",
+              "    const value = pm.variables.get(key);",
+              "    if (typeof value !== 'string' || !value.trim()) throw new Error('Set ' + key + ' in the collection Variables tab.');",
+              "}",
+              "// Hash the exact password, preserving spaces and UTF-8 characters, just like the collector.",
+              "const password = pm.variables.get('SOLARMAN_PASSWORD');",
+              "const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));",
+              "const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');",
+              "const payload = {",
+              "    email: pm.variables.get('SOLARMAN_EMAIL').trim(),",
+              "    appSecret: pm.variables.get('SOLARMAN_APP_SECRET').trim(),",
+              "    password: hash",
+              "};",
+              "const org = String(pm.variables.get('SOLARMAN_ORG_ID') || '').trim();",
+              "if (org) {",
+              "    if (!/^\\d+$/.test(org) || !Number.isSafeInteger(Number(org)) || Number(org) <= 0) throw new Error('SOLARMAN_ORG_ID must be a positive numeric merchant ID or blank.');",
+              "    payload.orgId = Number(org);",
+              "}",
+              "pm.variables.set('SOLARMAN_TOKEN_BODY', JSON.stringify(payload));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('HTTP response is successful', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.test('Solarman reports success (inspect the response for error details)', () => pm.expect(body.success).to.equal(true));",
+              "",
+              "const token = body.access_token;",
+              "const expiry = Number(body.expires_in);",
+              "pm.test('Response contains an access token and usable expiry', () => {",
+              "    pm.expect(token).to.be.a('string').and.not.empty;",
+              "    pm.expect(Number.isFinite(expiry) && expiry > 60).to.equal(true);",
+              "});",
+              "if (body.success === true && typeof token === 'string' && token && Number.isFinite(expiry) && expiry > 60) {",
+              "    pm.collectionVariables.set('SOLARMAN_ACCESS_TOKEN', token);",
+              "    pm.collectionVariables.set('SOLARMAN_ACCESS_TOKEN_EXPIRES_AT', String(Date.now() + expiry * 1000));",
+              "} else {",
+              "    pm.collectionVariables.unset('SOLARMAN_ACCESS_TOKEN');",
+              "    pm.collectionVariables.unset('SOLARMAN_ACCESS_TOKEN_EXPIRES_AT');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{SOLARMAN_BASE_URL}}/account/v1.0/token?appId={{SOLARMAN_APP_ID}}&language=en",
+          "host": [
+            "{{SOLARMAN_BASE_URL}}"
+          ],
+          "path": [
+            "account",
+            "v1.0",
+            "token"
+          ],
+          "query": [
+            {
+              "key": "appId",
+              "value": "{{SOLARMAN_APP_ID}}"
+            },
+            {
+              "key": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{SOLARMAN_TOKEN_BODY}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Matches the collector login. Query: appId and language=en. JSON: email, appSecret, lowercase SHA-256 password, plus orgId only when set. A successful response saves the access token. An unsuccessful response is left intact for diagnosis and clears the previous token."
+      },
+      "response": []
+    },
+    {
+      "name": "2 - List stations",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.variables.get('SOLARMAN_ACCESS_TOKEN');",
+              "if (typeof token !== 'string' || !token) throw new Error('Send 1 - Obtain token successfully first.');",
+              "const expiresAt = Number(pm.variables.get('SOLARMAN_ACCESS_TOKEN_EXPIRES_AT'));",
+              "if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() + 60000) throw new Error('Token expired or missing expiry; send 1 - Obtain token again.');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('HTTP response is successful', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.test('Solarman reports success (inspect the response for error details)', () => pm.expect(body.success).to.equal(true));",
+              "",
+              "if (body.success === true) {",
+              "    pm.test('Response contains a station list', () => pm.expect(body.stationList).to.be.an('array'));",
+              "    if (!String(pm.variables.get('SOLARMAN_STATION_ID') || '').trim() && Number(body.total) === 1 && Array.isArray(body.stationList) && body.stationList.length === 1) {",
+              "        const id = body.stationList[0].id;",
+              "        if (Number.isSafeInteger(id) && id > 0) pm.collectionVariables.set('SOLARMAN_STATION_ID', String(id));",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "bearer {{SOLARMAN_ACCESS_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{SOLARMAN_BASE_URL}}/station/v1.0/list?language=en",
+          "host": [
+            "{{SOLARMAN_BASE_URL}}"
+          ],
+          "path": [
+            "station",
+            "v1.0",
+            "list"
+          ],
+          "query": [
+            {
+              "key": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"page\": 1,\n  \"size\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Matches collector station discovery, including page=1 and size=2. Uses Authorization: bearer <token>. Auto-fills SOLARMAN_STATION_ID only when the response reports exactly one station. For multiple stations, enter the correct numeric plant ID manually."
+      },
+      "response": []
+    },
+    {
+      "name": "3 - Battery real-time data",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const token = pm.variables.get('SOLARMAN_ACCESS_TOKEN');",
+              "if (typeof token !== 'string' || !token) throw new Error('Send 1 - Obtain token successfully first.');",
+              "const expiresAt = Number(pm.variables.get('SOLARMAN_ACCESS_TOKEN_EXPIRES_AT'));",
+              "if (!Number.isFinite(expiresAt) || expiresAt <= Date.now() + 60000) throw new Error('Token expired or missing expiry; send 1 - Obtain token again.');",
+              "",
+              "const station = String(pm.variables.get('SOLARMAN_STATION_ID') || '').trim();",
+              "if (!/^\\d+$/.test(station) || !Number.isSafeInteger(Number(station)) || Number(station) <= 0) throw new Error('Set SOLARMAN_STATION_ID to your numeric plant ID, or run 2 - List stations for single-station discovery.');",
+              "pm.variables.set('SOLARMAN_REALTIME_BODY', JSON.stringify({stationId: Number(station)}));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('HTTP response is successful', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+              "pm.test('Solarman reports success (inspect the response for error details)', () => pm.expect(body.success).to.equal(true));",
+              "",
+              "if (body.success === true) {",
+              "    const isNumber = value => value !== null && value !== undefined && typeof value !== 'boolean' && Number.isFinite(Number(value));",
+              "    pm.test('Battery SOC is available and within 0-100%', () => {",
+              "        pm.expect(isNumber(body.batterySoc)).to.equal(true);",
+              "        pm.expect(Number(body.batterySoc)).to.be.within(0, 100);",
+              "    });",
+              "    pm.test('Separate charging and discharging power fields are available', () => {",
+              "        pm.expect(isNumber(body.chargePower)).to.equal(true);",
+              "        pm.expect(isNumber(body.dischargePower)).to.equal(true);",
+              "    });",
+              "    pm.test('Battery collection timestamp is fresh enough for the collector', () => {",
+              "        pm.expect(isNumber(body.lastUpdateTime)).to.equal(true);",
+              "        let timestamp = Number(body.lastUpdateTime);",
+              "        if (timestamp > 1e12) timestamp /= 1000;",
+              "        const maxAge = Number(pm.variables.get('SOLARMAN_MAX_AGE_SECONDS'));",
+              "        pm.expect(Number.isFinite(maxAge) && maxAge > 0).to.equal(true);",
+              "        pm.expect(timestamp > 0 && timestamp <= Date.now() / 1000 + 60).to.equal(true);",
+              "        pm.expect(Date.now() / 1000 - timestamp <= maxAge).to.equal(true);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "bearer {{SOLARMAN_ACCESS_TOKEN}}"
+          }
+        ],
+        "url": {
+          "raw": "{{SOLARMAN_BASE_URL}}/station/v1.0/realTime?language=en",
+          "host": [
+            "{{SOLARMAN_BASE_URL}}"
+          ],
+          "path": [
+            "station",
+            "v1.0",
+            "realTime"
+          ],
+          "query": [
+            {
+              "key": "language",
+              "value": "en"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{{SOLARMAN_REALTIME_BODY}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Matches collector battery polling. JSON contains numeric stationId. The original response shows batterySoc, chargePower, dischargePower, and lastUpdateTime. Tests check availability and freshness. Null/missing fields are not treated as zero; signed directional power fields are displayed as magnitudes by the collector. This request leaves the API response unchanged."
+      },
+      "response": []
+    }
+  ]
+}

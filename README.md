@@ -5,7 +5,7 @@ NRGMon is a Raspberry Pi-hosted solar and home-energy dashboard for two solar ar
 - Array 1: Hoymiles S-Miles Cloud, using the same read-only community login flow as [ioBroker Hoymiles](https://github.com/Eistee82/ioBroker.hoymiles).
 - Array 2: Myenergi API.
 
-The collector polls each configured source every 60 seconds and exports Prometheus metrics. Grafana shows live and historical solar generation, grid import/export, whole-property consumption, and Eddi hot-water status. No battery, appliance-specific, EV-status, or device-control fields are collected or stored.
+The collector polls each configured source every 60 seconds and exports Prometheus metrics. Grafana shows live and historical solar generation, grid import/export, whole-property consumption, Eddi hot-water status, and optional Solarman house-battery monitoring. No appliance-specific, EV-status, or device-control fields are collected or stored.
 
 ## Deploy
 
@@ -52,6 +52,51 @@ KIOSK_PAGES=["http://{{HOST}}:3000/d/solar-generation/solar-generation?orgId=1&k
 ```
 
 Leave `KIOSK_PAGES=[]` to use only the default NRGMon Grafana page. Pages hosted by other services must permit being displayed in an iframe.
+
+## Solarman battery monitoring (local development)
+
+Keep existing solar settings by copying `.env` to `env.local` **only if `env.local` does not already exist**. Both files are ignored by Git. Add:
+
+```dotenv
+SOLARMAN_ENABLED=true
+SOLARMAN_BASE_URL=https://globalapi.solarmanpv.com
+SOLARMAN_APP_ID=YOUR_APP_ID
+SOLARMAN_APP_SECRET=YOUR_API_SECRET
+SOLARMAN_EMAIL=YOUR_SOLARMAN_EMAIL
+SOLARMAN_PASSWORD='YOUR_NORMAL_SOLARMAN_PASSWORD'
+SOLARMAN_STATION_ID=
+SOLARMAN_ORG_ID=
+SOLARMAN_BATTERY_CAPACITY_KWH=
+SOLARMAN_MAX_AGE_SECONDS=900
+SOLARMAN_POWER_MULTIPLIER=1
+MYENERGI_GENERATION_INCLUDES_BATTERY=true
+```
+
+Use your normal, unhashed password. The adapter hashes its exact UTF-8 value to lowercase SHA-256 and sends it with `email` and `appSecret` in the JSON body of the token request; `appId` and `language=en` are URL parameters. Tokens are cached in memory until expiry and refreshed once on an unauthorized response. Request bodies, tokens, and API error bodies are not logged. Only login, station-list discovery, and station real-time queries are called; no device control is performed. See [Solarman authentication](https://doc.solarmanpv.com/en/Account%20Interface/2.1Obtain%20Token) and the [Solarman OpenAPI reference, section 4.5](https://manuals.plus/m/7156e9068460c7164fee85e9e73b687c15453c065d7b3a3c70f9fb9c1d8a6c95.pdf).
+
+Leave `SOLARMAN_STATION_ID` blank only if the account has exactly one station. Otherwise set its numeric plant ID. `SOLARMAN_ORG_ID` is needed only for a merchant account. Optional `SOLARMAN_BATTERY_CAPACITY_KWH` is the battery's usable full capacity; stored energy is an **estimate** calculated as capacity multiplied by charge percentage. Leave it blank to show `N/A` for stored energy.
+
+The adapter reads station `batterySoc`, `chargePower`, `dischargePower`, and `lastUpdateTime`. Direction comes from the named charging/discharging fields, whose magnitudes are displayed in watts; it does not guess the sign of `batteryPower`. Missing fields show `N/A`, not zero. A station that does not expose these fields needs a device-specific mapping before its battery flows can be shown. Power is treated as W by default; use multiplier `1000` only if verified API readings are in kW.
+
+The dashboard adds battery level, estimated stored energy, and Charging/Discharging power readings to the existing energy diagram. House battery and its percentage sit to the left of the battery icon, with Charging and Discharging readings to its right. Animated battery arrows connect the house and battery icon. Energy History combines solar, grid import, battery charging/discharging power, and battery level on one graph, with battery percentage on the right axis. Data older than `SOLARMAN_MAX_AGE_SECONDS` (15 minutes by default) is rejected; failed/stale polls clear live battery readings and show `N/A`. Polling every minute does not increase the inverter's cloud upload frequency. Live dashboard values also disappear if the collector has not polled for three minutes. Existing historical Docker volumes are preserved.
+
+If battery status is `Unavailable`, inspect `docker compose logs --tail=50 collector`. Solarman error `2101025` means authentication failed: check the application ID/secret and the email and normal password used to sign in to Solarman. Do not put a pre-hashed password in `SOLARMAN_PASSWORD`; the adapter hashes it. Merchant accounts may also require `SOLARMAN_ORG_ID`. Recreate the collector after editing `.env`: `docker compose up -d --build collector`. Missing battery readings display `N/A`, including when authentication fails before the first reading.
+
+For manual API diagnosis, import [the Postman collection](postman/NRGMon-Solarman.postman_collection.json) into a current Postman release. In its Variables tab, fill `SOLARMAN_APP_ID`, `SOLARMAN_APP_SECRET`, `SOLARMAN_EMAIL`, and your normal `SOLARMAN_PASSWORD` using local values. Send **1 - Obtain token**, **2 - List stations**, then **3 - Battery real-time data**. Password hashing and token capture are automatic. Station ID is populated only for a single-station account; otherwise set the correct plant ID yourself. Set optional `SOLARMAN_ORG_ID` for a merchant account. Request bodies and headers match the collector; responses remain unchanged for inspection. The shipped file contains no credentials. Keep any re-export containing secrets or tokens private.
+
+The house calculation depends on the Myenergi generation CT:
+
+- Leave `MYENERGI_GENERATION_INCLUDES_BATTERY=true` when it measures net solar/battery inverter output, or until the wiring is confirmed; the existing calculation is preserved.
+- Set it to `false` only when the CT measures solar alone. House power then becomes generation + net grid import + battery discharge − battery charge. If battery flows are unavailable, house power shows `N/A` while grid readings remain available. Eddi diversion is already included in house consumption.
+
+Start the local stack using both environment selection mechanisms (Compose interpolation and collector configuration):
+
+```sh
+ENV_FILE=env.local docker compose --env-file env.local config --quiet
+ENV_FILE=env.local docker compose --env-file env.local up -d --build
+```
+
+Open [Grafana](http://localhost:3000/d/solar-generation/solar-generation) or the [kiosk](http://localhost:8080). To disable battery collection, set `SOLARMAN_ENABLED=false` and recreate the collector. For Pi deployment, add the same settings to private `deploy.env`; the existing deployment script copies runtime settings into the Pi's private `.env`. Never commit either private configuration file.
 
 ### Deploy from a Mac
 
@@ -100,3 +145,5 @@ Run the included collector tests with:
 ```sh
 python3 -m unittest discover -s tests
 ```
+
+Install `requirements.txt` in your active Python environment before running the tests, so the adapter tests execute as well.

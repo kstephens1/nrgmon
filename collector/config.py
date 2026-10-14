@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import math
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Mapping
+from urllib.parse import urlsplit
 
 
 class ConfigError(ValueError):
@@ -42,12 +44,55 @@ class SourceConfig:
 
 
 @dataclass(frozen=True)
+class SolarmanConfig:
+    base_url: str
+    app_id: str = field(repr=False)
+    app_secret: str = field(repr=False)
+    email: str = field(repr=False)
+    password: str = field(repr=False)
+    station_id: int | None = None
+    org_id: int | None = None
+    capacity_kwh: float | None = None
+    max_age_seconds: int = 900
+    power_multiplier: float = 1
+
+
+def _solarman() -> SolarmanConfig | None:
+    if not _bool("SOLARMAN_ENABLED"):
+        return None
+    required = ("APP_ID", "APP_SECRET", "EMAIL", "PASSWORD")
+    if any(not _env(f"SOLARMAN_{key}") for key in required):
+        raise ConfigError("Solarman requires APP_ID, APP_SECRET, EMAIL, and PASSWORD")
+    base_url = _env("SOLARMAN_BASE_URL", "https://globalapi.solarmanpv.com").rstrip("/")
+    url = urlsplit(base_url)
+    if url.scheme != "https" or not url.hostname or url.username or url.password or url.query or url.fragment:
+        raise ConfigError("SOLARMAN_BASE_URL must be an HTTPS URL without credentials or query parameters")
+    try:
+        station_id = int(_env("SOLARMAN_STATION_ID")) if _env("SOLARMAN_STATION_ID") else None
+        org_id = int(_env("SOLARMAN_ORG_ID")) if _env("SOLARMAN_ORG_ID") else None
+        capacity = float(_env("SOLARMAN_BATTERY_CAPACITY_KWH")) if _env("SOLARMAN_BATTERY_CAPACITY_KWH") else None
+        max_age = int(_env("SOLARMAN_MAX_AGE_SECONDS", "900"))
+        multiplier = float(_env("SOLARMAN_POWER_MULTIPLIER", "1"))
+    except ValueError as exc:
+        raise ConfigError("Solarman numeric configuration is invalid") from exc
+    if (station_id is not None and station_id <= 0 or org_id is not None and org_id <= 0
+            or max_age <= 0 or not math.isfinite(multiplier) or multiplier <= 0
+            or capacity is not None and (not math.isfinite(capacity) or capacity <= 0)):
+        raise ConfigError("Solarman IDs, capacity, maximum age, and multiplier must be positive finite values")
+    return SolarmanConfig(base_url, _env("SOLARMAN_APP_ID"), _env("SOLARMAN_APP_SECRET"),
+                          _env("SOLARMAN_EMAIL"), os.environ["SOLARMAN_PASSWORD"],
+                          station_id, org_id, capacity, max_age, multiplier)
+
+
+@dataclass(frozen=True)
 class AppConfig:
     poll_interval_seconds: int
     request_timeout_seconds: int
     metrics_port: int
     state_file: str
     sources: tuple[SourceConfig, ...]
+    solarman: SolarmanConfig | None = None
+    myenergi_generation_includes_battery: bool = True
 
 
 def _env(name: str, default: str = "") -> str:
@@ -145,12 +190,15 @@ def _source(prefix: str, source: str, array: str) -> SourceConfig:
 def load_config() -> AppConfig:
     sources = (_source("HOYMILES", "hoymiles", "array_1"), _source("MYENERGI", "myenergi", "array_2"))
     active = tuple(source for source in sources if source.enabled)
-    if not active:
-        raise ConfigError("At least one source must be enabled")
+    solarman = _solarman()
+    if not active and solarman is None:
+        raise ConfigError("At least one solar or battery source must be enabled")
     return AppConfig(
         poll_interval_seconds=int(_env("POLL_INTERVAL_SECONDS", "60")),
         request_timeout_seconds=int(_env("REQUEST_TIMEOUT_SECONDS", "20")),
         metrics_port=int(_env("METRICS_PORT", "8000")),
         state_file=_env("STATE_FILE", "/state/normalizer-state.json"),
         sources=active,
+        solarman=solarman,
+        myenergi_generation_includes_battery=_bool("MYENERGI_GENERATION_INCLUDES_BATTERY", True),
     )

@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+env.local
+deploy.env
+.venv
+**/__pycache__
+*.py[cod]
+collector-state
+prometheus-data
+grafana-data
