@@ -5,13 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>NRGMon kiosk</title>
     <style>
-      html, body, iframe { width: 100%; height: 100%; margin: 0; border: 0; }
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; }
       body { background: #111; }
-      iframe { display: block; }
+      iframe { display: block; width: 100%; height: 100%; border: 0; }
+      #energy {
+        box-sizing: border-box;
+        width: 100%; height: 100%; height: 100dvh;
+        display: grid;
+        grid-template-rows: minmax(0, 68fr) minmax(0, 32fr);
+        gap: 6px; padding: 6px;
+      }
+      #energy .pane { position: relative; min-width: 0; min-height: 0; overflow: hidden; }
+      #energy iframe { position: absolute; top: 0; left: 0; transform-origin: top left; }
+      [hidden], #energy[hidden] { display: none; }
     </style>
   </head>
   <body>
     <iframe id="page" title="Kiosk display"></iframe>
+    <main id="energy" hidden aria-label="Solar and home energy">
+      <div class="pane"><iframe id="flow" title="Live home energy flow"></iframe></div>
+      <div class="pane"><iframe id="history" title="Energy history"></iframe></div>
+    </main>
     <script src="/config.js"></script>
     <script>
       (() => {
@@ -29,10 +43,73 @@
           resolvedPages.push(defaultPage);
         }
         const frame = document.getElementById('page');
+        const energy = document.getElementById('energy');
+        const flow = document.getElementById('flow');
+        const history = document.getElementById('history');
+
+        function fitPanels() {
+          for (const panel of [flow, history]) {
+            const bounds = panel.parentElement.getBoundingClientRect();
+            if (!bounds.width || !bounds.height) continue;
+            const width = Math.max(1280, bounds.width);
+            const scale = bounds.width / width;
+            panel.style.width = `${width}px`;
+            panel.style.height = `${bounds.height / scale}px`;
+            panel.style.transform = `scale(${scale})`;
+          }
+        }
+
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+          window.clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(() => {
+            if (!energy.hidden) {
+              fitPanels();
+              // Grafana connection anchors need a fresh layout after viewport changes.
+              flow.src = flow.src;
+              history.src = history.src;
+            }
+          }, 200);
+        });
+
+        function panelUrl(dashboard, panelId) {
+          const panel = new URL(dashboard);
+          panel.pathname = panel.pathname.replace('/d/', '/d-solo/');
+          panel.searchParams.delete('viewPanel');
+          panel.searchParams.delete('editPanel');
+          panel.searchParams.set('panelId', panelId);
+          panel.searchParams.set('refresh', panel.searchParams.get('refresh') || '1m');
+          panel.searchParams.set('from', panel.searchParams.get('from') || 'now-12h');
+          panel.searchParams.set('to', panel.searchParams.get('to') || 'now');
+          panel.searchParams.set('timezone', panel.searchParams.get('timezone') || 'browser');
+          return panel.href;
+        }
+
+        function showPage(page) {
+          let dashboard;
+          try { dashboard = new URL(page); } catch { /* Other pages retain the normal iframe. */ }
+          const isEnergy = dashboard
+            && dashboard.hostname === window.location.hostname
+            && dashboard.port === String(grafanaPort)
+            && /^\/d\/solar-generation(?:\/|$)/.test(dashboard.pathname);
+          frame.hidden = Boolean(isEnergy);
+          energy.hidden = !isEnergy;
+          if (isEnergy) {
+            // Solo panels fill their allocated viewport instead of using dashboard grid heights.
+            fitPanels();
+            flow.src = panelUrl(dashboard, '10');
+            history.src = panelUrl(dashboard, '4');
+            frame.removeAttribute('src');
+          } else {
+            frame.src = page;
+            flow.removeAttribute('src');
+            history.removeAttribute('src');
+          }
+        }
         let current = 0;
 
         function showNextPage() {
-          frame.src = resolvedPages[current];
+          showPage(resolvedPages[current]);
           current = (current + 1) % resolvedPages.length;
         }
 

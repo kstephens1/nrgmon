@@ -7,6 +7,7 @@ git add \
   .env.example \
   README.md \
   scripts/deploy-pi.sh \
+  kiosk/index.html \
   PROJECT_STATE.md \
   collector/config.py \
   collector/main.py \
@@ -15,7 +16,8 @@ git add \
   grafana/assets/nrgmon/energy-flow.svg \
   grafana/dashboards/solar-generation.json \
   tests/test_solarman.py \
+  tests/test_kiosk.cjs \
   postman/NRGMon-Solarman.postman_collection.json \
   gh.sh
-git commit -m "fit dashboard history on landscape tablets and protect production build context"
+git commit -m "adapt kiosk panels to Galaxy Tab A9+ viewport and restore full dashboard sizes"
 git push origin main
