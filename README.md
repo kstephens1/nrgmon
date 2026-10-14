@@ -84,10 +84,12 @@ If battery status is `Unavailable`, inspect `docker compose logs --tail=50 colle
 
 For manual API diagnosis, import [the Postman collection](postman/NRGMon-Solarman.postman_collection.json) into a current Postman release. In its Variables tab, fill `SOLARMAN_APP_ID`, `SOLARMAN_APP_SECRET`, `SOLARMAN_EMAIL`, and your normal `SOLARMAN_PASSWORD` using local values. Send **1 - Obtain token**, **2 - List stations**, then **3 - Battery real-time data**. Password hashing and token capture are automatic. Station ID is populated only for a single-station account; otherwise set the correct plant ID yourself. Set optional `SOLARMAN_ORG_ID` for a merchant account. Request bodies and headers match the collector; responses remain unchanged for inspection. The shipped file contains no credentials. Keep any re-export containing secrets or tokens private.
 
+The installed Myenergi generation CT measures solar only (confirmed on 2026-10-14). Set `MYENERGI_GENERATION_INCLUDES_BATTERY=false` in the private runtime environment. Home consumption includes battery charging and loads supplied by discharge.
+
 The house calculation depends on the Myenergi generation CT:
 
-- Leave `MYENERGI_GENERATION_INCLUDES_BATTERY=true` when it measures net solar/battery inverter output, or until the wiring is confirmed; the existing calculation is preserved.
-- Set it to `false` only when the CT measures solar alone. House power then becomes generation + net grid import + battery discharge − battery charge. If battery flows are unavailable, house power shows `N/A` while grid readings remain available. Eddi diversion is already included in house consumption.
+- Use `MYENERGI_GENERATION_INCLUDES_BATTERY=true` when it measures net solar/battery inverter output. Home consumption is generation + net grid import + battery charge; discharge is already included in inverter output.
+- Set it to `false` when the CT measures solar alone. Home consumption is generation + net grid import + battery discharge. Charging is already included as a load in this balance, so it is not subtracted or added again. Both modes include home loads supplied by battery discharge and battery charging as consumption. If the required battery flow is unavailable, Home consumption shows `N/A` while grid readings remain available. Eddi diversion is already included. With battery monitoring disabled, the calculation remains generation + net grid import.
 
 Start the local stack using both environment selection mechanisms (Compose interpolation and collector configuration):
 
@@ -114,7 +116,7 @@ Run the deployment script from the repository root:
 
 The script copies `.dockerignore` so private configuration files stay out of the Pi Docker build context. The script installs Docker, Docker Compose, and curl when needed on a Debian/Raspberry Pi OS host; it adds the SSH user to Docker’s group, then starts Docker, copies the application and its private `.env`, builds and starts the stack, and checks that all four containers are running and Grafana is healthy. It enables Docker at boot only after those checks pass; the Compose services use `restart: unless-stopped`, so they start again after the Pi reboots. The SSH user must be able to run `sudo systemctl` and Docker commands on the Pi. `DEPLOY_PASSWORD` is optional: leave it blank to use an SSH key or interactive prompt; if you set it, the script supplies it to SSH/SCP without printing it. Keep `deploy.env` private.
 
-Production was updated on 2026-10-14 with the combined history graph and revised battery layout. Deployment and extended smoke tests passed, including live battery/source metrics and retained historical samples.
+Production was updated on 2026-10-14 with the combined history graph, revised battery layout, and corrected Home consumption calculation using the confirmed solar-only CT setting. Deployment and extended smoke tests passed, including the live consumption balance, battery/source metrics, all dashboard queries, and retained historical samples.
 
 ## Adapter configuration
 
@@ -136,7 +138,7 @@ The collector deliberately rejects negative generation readings.
 
 Set `MYENERGI_HOT_WATER_TEMPERATURE_PATH=eddi.0.tp1` to show the Eddi primary temperature probe in Celsius. The collector displays `N/A` for Myenergi's unavailable-probe values (`-1` and `127`). It also detects solar hot-water diversion from Eddi status `3` and its `div` wattage; boost status `4` is deliberately excluded from solar-diversion power.
 
-Set `MYENERGI_EDDI_STATUS_URL` and `MYENERGI_ZAPPI_STATUS_URL` to the same Myenergi server with `/cgi-jstatus-E` and `/cgi-jstatus-Z` paths. When either is omitted and `MYENERGI_STATUS_URL` uses one of those paths, the collector derives both device URLs automatically and reuses the primary response. The default Zappi paths are `zappi.0.grd` and `zappi.0.gen`. Positive `grd` means grid import and negative `grd` means export. Whole-property consumption is calculated as `gen + grd`, so it includes all load measured at the grid connection, including EV charging and hot-water diversion. Myenergi may omit zero-valued fields; omitted Zappi grid/generation values are interpreted as `0 W`.
+Set `MYENERGI_EDDI_STATUS_URL` and `MYENERGI_ZAPPI_STATUS_URL` to the same Myenergi server with `/cgi-jstatus-E` and `/cgi-jstatus-Z` paths. When either is omitted and `MYENERGI_STATUS_URL` uses one of those paths, the collector derives both device URLs automatically and reuses the primary response. The default Zappi paths are `zappi.0.grd` and `zappi.0.gen`. Positive `grd` means grid import and negative `grd` means export. With battery monitoring disabled, whole-property consumption is calculated as `gen + grd`, so it includes all load measured at the grid connection, including EV charging and hot-water diversion. With battery monitoring enabled, the CT-dependent correction described above also includes battery charging and loads supplied by battery discharge. Myenergi may omit zero-valued fields; omitted Zappi grid/generation values are interpreted as `0 W`.
 
 ## Operations
 

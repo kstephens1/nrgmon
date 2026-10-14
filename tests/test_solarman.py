@@ -130,11 +130,29 @@ class SolarmanTests(unittest.TestCase):
                 self.adapter.fetch()
             self.assertNotIn('test-secret', str(error.exception))
 
-    def test_house_calculation_handles_solar_only_ct_and_missing_battery(self):
-        self.assertEqual(grid_flows(-600, 4200, 1000, 0), (0, 600, 2600))
+    def test_house_consumption_includes_charging_with_solar_only_ct(self):
+        # 4.2 kW solar, 600 W export: 2.6 kW house loads + 1 kW charging.
+        self.assertEqual(grid_flows(-600, 4200, 1000, 0), (0, 600, 3600))
+        # Grid charging is already included in net grid import.
+        self.assertEqual(grid_flows(1500, 0, 1000, 0), (1500, 0, 1500))
+
+    def test_house_consumption_includes_discharge_with_solar_only_ct(self):
         self.assertEqual(grid_flows(100, 0, 0, 900), (100, 0, 1000))
+        self.assertEqual(grid_flows(-200, 500, 100, 900), (0, 200, 1200))
         self.assertTrue(math.isnan(grid_flows(100, 0, None, None)[2]))
-        self.assertTrue(math.isnan(grid_flows(0, 0, 1000, 0)[2]))
+        self.assertTrue(math.isnan(grid_flows(-1000, 0, 0, 0)[2]))
+
+    def test_house_consumption_handles_net_inverter_ct_without_double_counting(self):
+        # The inverter CT reads 3.2 kW after 1 kW battery charging.
+        self.assertEqual(grid_flows(-600, 3200, 1000, 0,
+                                    generation_includes_battery=True), (0, 600, 3600))
+        # Battery discharge is already part of the 900 W inverter output.
+        self.assertEqual(grid_flows(100, 900, 0, 900,
+                                    generation_includes_battery=True), (100, 0, 1000))
+        self.assertEqual(grid_flows(1500, -1000, 1000, 0,
+                                    generation_includes_battery=True), (1500, 0, 1500))
+        self.assertTrue(math.isnan(grid_flows(100, 0, None, None,
+                                             generation_includes_battery=True)[2]))
 
     def test_idle_partial_readings_and_unknown_capacity(self):
         self.adapter.config = replace(self.config, capacity_kwh=None)

@@ -21,7 +21,7 @@ EDDI_SOLAR_DIVERSION_ACTIVE = Gauge("eddi_solar_diversion_active", "Whether Eddi
 EDDI_SOLAR_DIVERTED_POWER = Gauge("eddi_solar_diverted_power_watts", "Solar power currently diverted by Eddi", ["source", "array"])
 GRID_IMPORT_POWER = Gauge("grid_import_power_watts", "Current power imported from the grid", ["source", "array"])
 GRID_EXPORT_POWER = Gauge("grid_export_power_watts", "Current power exported to the grid", ["source", "array"])
-HOUSE_CONSUMPTION_POWER = Gauge("house_consumption_power_watts", "Current whole-property power consumption", ["source", "array"])
+HOUSE_CONSUMPTION_POWER = Gauge("house_consumption_power_watts", "Current whole-property power consumption including battery charging", ["source", "array"])
 MYENERGI_EDDI_UP = Gauge("myenergi_eddi_status_up", "Whether the last MyEnergi Eddi status poll succeeded", ["source", "array"])
 MYENERGI_ZAPPI_UP = Gauge("myenergi_zappi_status_up", "Whether the last MyEnergi Zappi status poll succeeded", ["source", "array"])
 
@@ -67,10 +67,15 @@ def _set_optional(gauge: Gauge, labels: tuple[str, ...], value: float | None) ->
 
 
 def grid_flows(grid_power_w: float | None, generation_power_w: float | None,
-               charge_w: float | None = 0, discharge_w: float | None = 0) -> tuple[float, float, float] | None:
+               charge_w: float | None = 0, discharge_w: float | None = 0,
+               *, generation_includes_battery: bool = False) -> tuple[float, float, float] | None:
     if grid_power_w is None or generation_power_w is None:
         return None
-    house = math.nan if charge_w is None or discharge_w is None else generation_power_w + grid_power_w + discharge_w - charge_w
+    # Solar-only generation + net grid already includes battery charging as load.
+    # Net inverter generation includes discharge but subtracts battery charging,
+    # so restore charging in that case instead of adding discharge again.
+    correction = charge_w if generation_includes_battery else discharge_w
+    house = math.nan if correction is None else generation_power_w + grid_power_w + correction
     return max(grid_power_w, 0), max(-grid_power_w, 0), house if house >= 0 else math.nan
 
 
@@ -151,10 +156,11 @@ def main() -> None:
                 myenergi_reading = reading
         if battery:
             battery_reading = poll_battery(battery)
-            if not config.myenergi_generation_includes_battery and myenergi_reading is not None:
+            if myenergi_reading is not None:
                 flows = grid_flows(myenergi_reading.grid_power_w, myenergi_reading.site_generation_power_w,
                                    battery_reading.charge_w if battery_reading else None,
-                                   battery_reading.discharge_w if battery_reading else None)
+                                   battery_reading.discharge_w if battery_reading else None,
+                                   generation_includes_battery=config.myenergi_generation_includes_battery)
                 if flows is not None:
                     HOUSE_CONSUMPTION_POWER.labels("myenergi", "array_2").set(flows[2])
         time.sleep(max(0, config.poll_interval_seconds - (time.monotonic() - started)))
